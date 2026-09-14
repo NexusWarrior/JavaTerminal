@@ -1,61 +1,77 @@
 /*
  * 1. Приложение должно быть реализовано в форме консольного интерфейса
- * (CLI).
+ * (CLI). +
  * 2. Приглашение к вводу должно формироваться на основе реальных данных
  * ОС, в которой исполняется эмулятор. Пример: username@hostname:~$. +
  * 3. Реализовать парсер, который поддерживает раскрытие переменных
- * окружения реальной ОС (например, $HOME).
+ * окружения реальной ОС (например, $HOME). +
  * 4. Сообщить об ошибке выполнения команд (неизвестная команда, неверные
- * аргументы).
+ * аргументы). +
  * 5. Реализовать команды-заглушки, которые выводят свое имя и аргументы: ls,
- * cd.
+ * cd. +
  * 6. Реализовать команду exit. +
- * 7. Продемонстрировать работу прототипа в интерактивном режиме.
+ * 7. Продемонстрировать работу прототипа в интерактивном режиме. +
  * Необходимо показать примеры работы всей реализованной
  * функциональности, включая обработку ошибок.
  * 8. Результат выполнения этапа сохранить в репозиторий стандартно
- * оформленным коммитом.
+ * оформленным коммитом. +
  */
 
 void main() throws UnknownHostException {
+    Scanner scanner = new Scanner(System.in);
+
     while (true) {
-        String welcomeMessage = getWelcomeMessage();
-        System.out.print(welcomeMessage);
+        IO.print(getWelcomeMessage());
 
-        Scanner scanner = new Scanner(System.in);
+        if (!scanner.hasNextLine()) break;
 
-        if (scanner.nextLine().equals("exit")) break;
+        String line = scanner.nextLine();
+        List<String> input = parseUserInput(line);
 
-        System.out.println(parseUserInput(scanner));
+        if (input.isEmpty()) continue;
+
+        String command = input.getFirst();
+        List<String> cmdArgs = input.subList(1, input.size());
+
+        if (command.equals("exit")) break;
+
+        executeCommand(command, cmdArgs);
     }
 }
 
-// Генерация приветственного сообщения для пользователя
+// Генерация приветственного сообщения
 public static String getWelcomeMessage() throws UnknownHostException {
     String username = System.getProperty("user.name");
     String hostName = InetAddress.getLocalHost().getHostName();
-
     return String.format("%s@%s:~$ ", username, hostName);
 }
 
-// Получение и парсинг пользовательского ввода
-public static String parseUserInput(Scanner scanner) {
-    String line = scanner.nextLine().trim();
-    if (line.isEmpty()) {
-        return "";
+// Парсинг строки и раскрытие переменных окружения
+public static List<String> parseUserInput(String line) {
+    String trimmed = line.trim();
+    if (trimmed.isEmpty()) {
+        return List.of();
     }
 
-    String[] tokens = line.split("\\s+");
-    List<String> outputList = new ArrayList<>();
+    String[] inputList = trimmed.split("\\s+");
+    List<String> parsedInput = new ArrayList<>();
 
-    for (String token : tokens) {
+    for (String token : inputList) {
         if (token.startsWith("$") && token.length() > 1) {
-            String envVal = System.getenv(token.substring(1));
-            outputList.add(envVal != null ? envVal : "");
+            String varName = token.substring(1);
+            String envVal = System.getenv(varName);
+
+            parsedInput.add(envVal != null ? envVal : "");
         } else {
-            outputList.add(token);
+            parsedInput.add(token);
         }
     }
+    return parsedInput;
+}
 
-    return String.join(" ", outputList);
+// Проверка и обработка ошибок ввода
+public static void executeCommand(String command, List<String> cmdArgs) {
+
+    if (cmdArgs.isEmpty()) System.out.println("Неверные аргументы");
+    else System.out.printf("Команда: %s, аргументы: %s%n", command, cmdArgs);
 }
